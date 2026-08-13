@@ -16,11 +16,6 @@ jobs:
           unzip -q self_lab_phone_bundle.zip -d bundle
           unzip -q bundle/self-lab-project.zip -d project
 
-      - name: Check project
-        run: |
-          echo "Project files:"
-          find project -maxdepth 3 -type f | head -100
-
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -41,34 +36,13 @@ jobs:
           sdkmanager "platforms;android-35"
           sdkmanager "build-tools;35.0.0"
 
-      - name: Build
-        run: |
-          cd project
-          gradle assembleDebug --no-daemon
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: self-lab-apk
-          path: project/**/build/outputs/apk/debug/*.apk        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK
-        run: |
-          sdkmanager "platform-tools"
-          sdkmanager "platforms;android-35"
-          sdkmanager "build-tools;35.0.0"
-
       - name: Build APK
         run: |
           cd project
           gradle assembleDebug --no-daemon
 
-      - name: Find APK
-        run: |
-          find project -type f -name "*.apk"
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: self-lab-apk
-          path: project/**/build/outputs/apk/debug/*.apk
+          path: project/app/build/outputs/apk/debug/*.apk
