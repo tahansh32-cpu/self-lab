@@ -11,10 +11,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract bundle
+      - name: Extract project
         run: |
           unzip -q self_lab_phone_bundle.zip -d bundle
-          unzip -q bundle/self-lab-project.zip -d project
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -37,12 +36,12 @@ jobs:
           sdkmanager "build-tools;35.0.0"
 
       - name: Build APK
+        working-directory: bundle/phone_bundle/project_payload
         run: |
-          cd project
           gradle assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: self-lab-apk
-          path: project/app/build/outputs/apk/debug/*.apk
+          path: bundle/phone_bundle/project_payload/app/build/outputs/apk/debug/*.apk
