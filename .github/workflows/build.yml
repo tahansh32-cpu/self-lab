@@ -8,33 +8,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Extract uploaded bundle
+      - name: Extract bundle
         run: |
           unzip -q self_lab_phone_bundle.zip -d bundle
           unzip -q bundle/self-lab-project.zip -d project
 
-      - name: Find Android project
+      - name: Check project
         run: |
-          echo "Searching for Android project..."
-          find project -name settings.gradle.kts -o -name settings.gradle
-          find project -name build.gradle.kts -o -name build.gradle
+          echo "Project files:"
+          find project -maxdepth 3 -type f | head -100
 
-      - name: Set up Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Set up Android SDK
+      - name: Setup Android
         uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: |
+          sdkmanager "platform-tools"
+          sdkmanager "platforms;android-35"
+          sdkmanager "build-tools;35.0.0"
+
+      - name: Build
+        run: |
+          cd project
+          gradle assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-lab-apk
+          path: project/**/build/outputs/apk/debug/*.apk        uses: android-actions/setup-android@v3
 
       - name: Install Android SDK
         run: |
