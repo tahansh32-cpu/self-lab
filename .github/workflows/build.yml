@@ -35,23 +35,75 @@ jobs:
           sdkmanager "platforms;android-35"
           sdkmanager "build-tools;35.0.0"
 
-      - name: Configure JVM compatibility
+      - name: Configure JVM targets
         working-directory: bundle/phone_bundle/project_payload
         run: |
-          cat >> gradle.properties <<'EOF'
-          kotlin.jvm.target.validation.mode=warning
-          EOF
+          python3 - <<'PY'
+          from pathlib import Path
+
+          files = list(Path(".").rglob("build.gradle")) + list(Path(".").rglob("build.gradle.kts"))
+
+          for file in files:
+              text = file.read_text()
+
+              if file.name == "build.gradle":
+                  text += r'''
+
+          // CI JVM compatibility
+          tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+              kotlinOptions.jvmTarget = "17"
+          }
+
+          android {
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+          '''
+
+              else:
+                  text += r'''
+
+          // CI JVM compatibility
+          tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+          }
+
+          android {
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+          }
+          '''
+
+              file.write_text(text)
+              print("Configured:", file)
+
+          gradle_properties = Path("gradle.properties")
+
+          if gradle_properties.exists():
+              text = gradle_properties.read_text()
+          else:
+              text = ""
+
+          if "kotlin.jvm.target.validation.mode" not in text:
+              text += "\nkotlin.jvm.target.validation.mode=error\n"
+
+          gradle_properties.write_text(text)
+          PY
 
       - name: Build APK
         working-directory: bundle/phone_bundle/project_payload
         run: |
-          gradle assembleDebug --no-daemon \
-            -Pandroid.injected.testOnly=false
+          gradle clean assembleDebug --no-daemon
 
       - name: Find APK
         run: |
-          echo "Searching for APK..."
-          find bundle/phone_bundle/project_payload -type f -name "*.apk"
+          find bundle/phone_bundle/project_payload -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
